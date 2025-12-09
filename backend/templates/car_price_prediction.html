@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Used Car Price Prediction</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px); /* Safari support */
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Fallback for browsers that don't support backdrop-filter */
+        @supports not (backdrop-filter: blur(20px)) {
+            .container {
+                background: rgba(255, 255, 255, 0.98);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .form-container {
+            padding: 40px 30px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            background: white;
+            transition: all 0.3s ease;
+            color: #374151;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .form-group select:hover,
+        .form-group input:hover {
+            border-color: #667eea;
+        }
+
+        .form-group input::placeholder {
+            color: #9ca3af;
+        }
+
+        .form-group select:invalid,
+        .form-group input:invalid {
+            border-color: #ef4444;
+        }
+
+        .form-group select:invalid:focus,
+        .form-group input:invalid:focus {
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+
+        .form-group.error select,
+        .form-group.error input {
+            border-color: #ef4444;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .form-group .error-message {
+            color: #ef4444;
+            font-size: 0.8rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .form-group.error .error-message {
+            display: block;
+        }
+
+        .submit-section {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .icon {
+            margin-right: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 16px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .form-container {
+                padding: 30px 20px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-car icon"></i>Car Price Predictor</h1>
+            <p>Get an accurate price prediction for your used car</p>
+        </div>
+        
+        <div class="form-container">
+            <form action="/predict" id="predictionForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="slct1"><i class="fas fa-industry icon"></i>Manufacturer</label>
+                        <select name="slct1" id="slct1" onchange="populate(this.id,'slct2')" required>
+                            <option value="">Select manufacturer</option>
+                            <option value="0">Acura</option>
+                            <option value="2">Audi</option>
+                            <option value="3">BMW</option>
+                            <option value="5">Cadillac</option>
+                            <option value="6">Chevrolet</option>
+                            <option value="11">Fiat</option>
+                            <option value="12">Ford</option>
+                            <option value="15">Honda</option>
+                            <option value="16">Hyundai</option>
+                            <option value="18">Jaguar</option>
+                            <option value="19">Jeep</option>
+                            <option value="20">Kia</option>
+                            <option value="25">Mercedes-benz</option>
+                            <option value="29">Nissan</option>
+                            <option value="36">Tesla</option>
+                            <option value="37">Toyota</option>
+                            <option value="38">Volkswagen</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="slct2"><i class="fas fa-car-side icon"></i>Model</label>
+                        <select name="slct2" id="slct2" required>
+                            <option value="">Select model</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="year"><i class="fas fa-calendar-alt icon"></i>Year of Manufacture</label>
+                        <select name="year" id="year" required>
+                            <option value="">Select year</option>
+                            <option value="2010">2010</option>
+                            <option value="2011">2011</option>
+                            <option value="2012">2012</option>
+                            <option value="2013">2013</option>
+                            <option value="2014">2014</option>
+                            <option value="2015">2015</option>
+                            <option value="2016">2016</option>
+                            <option value="2017">2017</option>
+                            <option value="2018">2018</option>
+                            <option value="2019">2019</option>
+                            <option value="2020">2020</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="odom"><i class="fas fa-tachometer-alt icon"></i>Odometer Reading (km)</label>
+                        <input name="odom" id="odom" type="number" placeholder="Enter odometer reading" min="0" step="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cylin"><i class="fas fa-cogs icon"></i>Number of Cylinders</label>
+                        <select name="cylin" id="cylin" required>
+                            <option value="">Select cylinders</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="8">8</option>
+                            <option value="10">10</option>
+                            <option value="12">12</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fueltyp"><i class="fas fa-gas-pump icon"></i>Fuel Type</label>
+                        <select name="fueltyp" id="fueltyp" required>
+                            <option value="">Select fuel type</option>
+                            <option value="0">Diesel</option>
+                            <option value="1">Electric</option>
+                            <option value="2">Gas</option>
+                            <option value="3">Hybrid</option>
+                            <option value="4">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="title"><i class="fas fa-clipboard-check icon"></i>Car Status</label>
+                        <select name="title" id="title" required>
+                            <option value="">Select status</option>
+                            <option value="0">Clean</option>
+                            <option value="1">Lien</option>
+                            <option value="4">Rebuilt</option>
+                            <option value="5">Salvage</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="transm"><i class="fas fa-cog icon"></i>Transmission</label>
+                        <select name="transm" id="transm" required>
+                            <option value="">Select transmission</option>
+                            <option value="0">Automatic</option>
+                            <option value="1">Manual</option>
+                            <option value="2">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cond"><i class="fas fa-star icon"></i>Condition</label>
+                        <select name="cond" id="cond" required>
+                            <option value="">Select condition</option>
+                            <option value="0">Excellent</option>
+                            <option value="1">Fair</option>
+                            <option value="2">Good</option>
+                            <option value="3">Like New</option>
+                            <option value="4">New</option>
+                            <option value="5">Salvage</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="drivetype"><i class="fas fa-tire icon"></i>Drive Type</label>
+                        <select name="drivetype" id="drivetype" required>
+                            <option value="">Select drive type</option>
+                            <option value="0">Four Wheel Drive (4WD)</option>
+                            <option value="1">Front Wheel Drive (FWD)</option>
+                            <option value="2">Rear Wheel Drive (RWD)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="type"><i class="fas fa-car icon"></i>Car Type</label>
+                        <select name="type" id="type" required>
+                            <option value="">Select type</option>
+                            <option value="0">SUV</option>
+                            <option value="1">Bus</option>
+                            <option value="2">Convertible</option>
+                            <option value="3">Coupe</option>
+                            <option value="4">Hatchback</option>
+                            <option value="5">Mini-van</option>
+                            <option value="6">Offroad</option>
+                            <option value="7">Other</option>
+                            <option value="8">Pickup</option>
+                            <option value="9">Sedan</option>
+                            <option value="10">Truck</option>
+                            <option value="11">Van</option>
+                            <option value="12">Wagon</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="color"><i class="fas fa-palette icon"></i>Color</label>
+                        <select name="color" id="color" required>
+                            <option value="">Select color</option>
+                            <option value="0">Black</option>
+                            <option value="1">Blue</option>
+                            <option value="2">Brown</option>
+                            <option value="3">Custom</option>
+                            <option value="4">Green</option>
+                            <option value="5">Grey</option>
+                            <option value="6">Orange</option>
+                            <option value="7">Purple</option>
+                            <option value="8">Red</option>
+                            <option value="9">Silver</option>
+                            <option value="10">White</option>
+                            <option value="11">Yellow</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="state"><i class="fas fa-map-marker-alt icon"></i>State</label>
+                        <select name="state" id="state" required>
+                            <option value="">Select state</option>
+                            <option value="0">California</option>
+                            <option value="1">Colorado</option>
+                            <option value="2">Florida</option>
+                            <option value="3">Michigan</option>
+                            <option value="4">North Carolina</option>
+                            <option value="5">New York</option>
+                            <option value="6">Ohio</option>
+                            <option value="7">Oregon</option>
+                            <option value="8">Pennsylvania</option>
+                            <option value="9">Texas</option>
+                            <option value="10">Washington</option>
+                            <option value="11">Wisconsin</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="region"><i class="fas fa-city icon"></i>Region</label>
+                        <select name="region" id="region" required>
+                            <option value="">Select region</option>
+                            <option value="0">Atlanta</option>
+                            <option value="1">Austin</option>
+                            <option value="2">Boston</option>
+                            <option value="3">Chicago</option>
+                            <option value="4">Flint</option>
+                            <option value="5">Houston</option>
+                            <option value="6">Los Angeles</option>
+                            <option value="7">Miami</option>
+                            <option value="8">New York</option>
+                            <option value="9">Philadelphia</option>
+                            <option value="10">Phoenix</option>
+                            <option value="11">Seattle</option>
+                            <option value="12">Washington DC</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="avg_mil"><i class="fas fa-road icon"></i>Average Mileage (km/year)</label>
+                        <input name="avg_mil" id="avg_mil" type="number" placeholder="Enter average mileage per year" min="0" step="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="manufc"><i class="fas fa-flag icon"></i>Manufacturer Country</label>
+                        <select name="manufc" id="manufc" required>
+                            <option value="">Select country</option>
+                            <option value="0">America</option>
+                            <option value="1">Germany</option>
+                            <option value="2">Japan</option>
+                            <option value="3">Korea</option>
+                            <option value="4">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="type_class"><i class="fas fa-tags icon"></i>Type Class</label>
+                        <select name="type_class" id="type_class" required>
+                            <option value="">Select class</option>
+                            <option value="0">Family</option>
+                            <option value="1">Luxury</option>
+                            <option value="2">Sport</option>
+                            <option value="3">Utility</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="color_class"><i class="fas fa-paint-brush icon"></i>Color Class</label>
+                        <select name="color_class" id="color_class" required>
+                            <option value="">Select color class</option>
+                            <option value="0">Common</option>
+                            <option value="1">Rare</option>
+                            <option value="2">Custom</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="submit-section">
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-calculator icon"></i>Predict Car Price
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        function populate(s1,s2) {
+            var s1 = document.getElementById(s1);
+            var s2 = document.getElementById(s2);
+
+            s2.innerHTML = "<option value=''>Select model</option>";
+
+            if(s1.value == "0") {
+                var optionArray = ['5810|ILX','6619|MDX','7788|RDX','7954|RSX','9552|TL','7880|RL'];
+            } else if(s1.value == "2") {
+                var optionArray = ['1185|A3','1213|A4','1271|A5','1285|A6','1315|A7','1326|A8'];
+            } else if(s1.value == "3") {
+                var optionArray = ['12|1 Series','218|2 Series','455|3 Series','574|320i','798|4 Series','918|5 Series'];
+            } else if(s1.value == "5") {
+                var optionArray = ['3882|Escalade','10524|XTS','3159|CTS','3905|Escalade Premium','3347|Deville'];
+            } else if(s1.value == "6") {
+                var optionArray = ['8684|Silverado','352|2500 HD','1647|Avalanche LT','1987|Blazer','2228|Camaro'];
+            } else if(s1.value == "11") {
+                var optionArray = ['947|500 Pop','953|500 Turbo','946|500 Lounge','941|500','30|124 Spider'];
+            } else if(s1.value == "12") {
+                var optionArray = ['4827|F350 Super Duty Lariat','2030|Bronco','4093|Explorer Sport','3660|Edge SE','5248|Fusion'];
+            } else if(s1.value == "15") {
+                var optionArray = ['7294|Pilot','1383|Accord','2574|Civic','3041|Crosstour','6999|Odyssey'];
+            } else if(s1.value == "16") {
+                var optionArray = ['3688|Elantra','10046|Veracruz Limited','8899|Sonata','5418|Genesis','10010|Veloster'];
+            } else if(s1.value == "18") {
+                var optionArray = ['10457|XJ','4526|F-Pace 35T R-Sport SUV','4523|F-Pace','10445|XF','4525|F-Pace 20D Prestige Sport'];
+            } else if(s1.value == "19") {
+                var optionArray = ['10165|Wrangler','7248|Patriot','5594|Grand Cherokee','10221|Wrangler Unlimited','10175|Wrangler JK'];
+            } else if(s1.value == "20") {
+                var optionArray = ['8985|Soul','5159|Forte','7033|Optima','9051|Sportage','2210|Cadenza'];
+            } else if(s1.value == "25") {
+                var optionArray = ['6428|M-Class','2055|C250','3468|E-Class','5450|GL-Class','9069|Sprinter'];
+            } else if(s1.value == "29") {
+                var optionArray = ['7893|Rogue','1518|Altima','8304|Centra','5204|Frontier','10056|Versa','6551|Maxima'];
+            } else if(s1.value == "36") {
+                var optionArray = ['6758|Model S Sedan','6751|Model S','6761|Model X','6753|Model S P85','6759|Model S Signature'];
+            } else if(s1.value == "37") {
+                var optionArray = ['2908|Corolla S','7726|RAV4','2880|Corolla','2273|Camry','9868|Tundra'];
+            } else if(s1.value == "38") {
+                var optionArray = ['7175|Passat','9610|Touareg TDI Sport SUV','5980|Jetta','1746|Beetle','6020|Jetta Sportwagen'];
+            }
+
+            for(var option in optionArray) {
+                var pair = optionArray[option].split("|");
+                var newoption = document.createElement("option");
+                newoption.value = pair[0];
+                newoption.innerHTML = pair[1];
+                s2.options.add(newoption);
+            }
+        }
+
+        // Form submission with loading animation
+        document.getElementById('predictionForm').addEventListener('submit', function(e) {
+            // Clear previous errors
+            document.querySelectorAll('.form-group').forEach(group => {
+                group.classList.remove('error');
+            });
+            
+            let hasErrors = false;
+            
+            // Validate all required fields
+            const requiredFields = document.querySelectorAll('select[required], input[required]');
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.closest('.form-group').classList.add('error');
+                    hasErrors = true;
+                }
+            });
+            
+            // Validate number inputs
+            const numberInputs = document.querySelectorAll('input[type="number"]');
+            numberInputs.forEach(input => {
+                const value = parseFloat(input.value);
+                if (isNaN(value) || value < 0) {
+                    input.closest('.form-group').classList.add('error');
+                    hasErrors = true;
+                }
+            });
+            
+            // Validate year range
+            const yearSelect = document.getElementById('year');
+            if (yearSelect.value) {
+                const year = parseInt(yearSelect.value);
+                if (year < 2010 || year > 2020) {
+                    yearSelect.closest('.form-group').classList.add('error');
+                    hasErrors = true;
+                }
+            }
+            
+            if (hasErrors) {
+                e.preventDefault();
+                // Scroll to first error
+                const firstError = document.querySelector('.form-group.error');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return false;
+            }
+            
+            // Show loading animation
+            document.getElementById('loading').style.display = 'flex';
+        });
+
+        // Real-time validation
+        document.querySelectorAll('select, input').forEach(field => {
+            field.addEventListener('blur', function() {
+                const group = this.closest('.form-group');
+                group.classList.remove('error');
+                
+                if (this.hasAttribute('required') && !this.value.trim()) {
+                    group.classList.add('error');
+                }
+                
+                if (this.type === 'number') {
+                    const value = parseFloat(this.value);
+                    if (this.value && (isNaN(value) || value < 0)) {
+                        group.classList.add('error');
+                    }
+                }
+            });
+            
+            field.addEventListener('input', function() {
+                const group = this.closest('.form-group');
+                if (this.value.trim()) {
+                    group.classList.remove('error');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
